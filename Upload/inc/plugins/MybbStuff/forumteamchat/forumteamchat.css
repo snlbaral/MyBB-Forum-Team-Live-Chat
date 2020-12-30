@@ -1,0 +1,169 @@
+.alphabet {
+	background: #5876ab;
+	color: #fff;
+	padding: 6px;
+}
+
+.alphabet a {
+	color: #fff;
+	padding: 6px 10px;
+	font-size: 12px;
+}
+
+.alphabet span {
+	font-size: 12px;
+}
+
+.alphabet a:hover {
+background: #415d8d;
+text-decoration: none;
+}
+
+
+.bdy {
+	height: 450px;
+    position: fixed;
+    right: 2%;
+    border: 0;
+    z-index: 999;
+    bottom: 5px;
+    width: 330px;
+}
+
+#chathead {
+    position: relative;
+    right: 0;
+    z-index: 99999;
+    min-height: 450px;
+    min-width: 330px;
+    background: #fff;
+    color: #000;
+    word-break: break-word;
+    border-radius: 6px;
+    top: 0px;
+    border: 1px solid #ccc;
+    overflow: hidden;
+}
+
+#chatform {
+	position: absolute;
+	bottom: 10px;
+}
+
+#chatform input {
+	display: inline-block;
+}
+
+#chatbody {
+    margin-top: 2px;
+    height: 350px;
+    overflow-y: auto;
+    clear: both;
+    padding: 2px 4px;
+    word-break: break-word;
+}
+
+#chatbody img {
+	height: 28px;
+	width: 28px;
+}
+
+.wholemsg {
+	padding: 0px;
+	font-size: 13px;
+	font-weight: bold;
+	word-break: break-word;
+	white-space: nowrap;
+	vertical-align: top;
+	clear: both;
+}
+
+.msgbx {
+	font-weight: normal;
+	background: #e1e3f4;
+	width: fit-content;
+	padding: 6px 10px;
+	border-radius: 12px;
+	display: inline-block;
+	word-break: break-word;
+	white-space: normal;
+	max-width: 70%;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+
+
+.username {
+	position: relative;
+	vertical-align: middle;
+	display: inline-block;
+	padding-right: 4px;
+	cursor: pointer;
+}
+
+.pphead {
+	width: 28px;
+    height: 28px;
+    border: 2px solid #ccc;
+    border-top-left-radius: 50%;
+    border-bottom-left-radius: 50%;
+    border-top-right-radius: 50%;
+    border-bottom-right-radius: 50%;
+}
+
+html, body {
+	margin: 0;
+}
+
+#chatform input[type="text"] {
+	margin-left: 6px;
+	padding: 4px 6px;
+	height: 24px;
+	background: #f5f5ff;
+	border-radius: 12px;
+	border: 1px solid #ccc;
+	width: 220px;
+}
+
+#chatform input[type="text"]:hover, #chatform input[type="text"]:focus {
+	outline: 0;
+	border: 1px solid green;
+}
+
+#send {
+	background: #1c89ff;
+	color: #fff;
+	border: 1px solid #e1e2f3;
+	height: 30px;
+	padding: 0 10px;
+	border-radius: 18px;
+	cursor: pointer;
+}
+
+#send:hover, #send:focus {
+	outline: 0;
+	background: #262626;
+}
+
+#forOpen {
+display: none;
+}
+
+#forClose {
+	display: initial !important;
+}
+
+#forClose, #forOpen {
+    position: fixed;
+    right: 2%;
+    z-index: 999;
+    bottom: 456px;
+    background: #5876ab;
+    padding: 6px;
+    text-align: center;
+    color: #fff;
+	cursor: pointer;
+	border-radius: 50%;
+	border: 2px solid #fff;
+}
