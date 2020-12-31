@@ -14,7 +14,7 @@ function forumteamchat_info()
 		'author' => 'Sunil Baral',
 		'website' => 'https://github.com/snlbaral',
 		'description' => 'This plugins allows mybb forum team to live chat',
-		'version' => '1.0',
+		'version' => '1.1.1',
 		'compatibility' => '18*',
 		'guid' => '',
 	);
@@ -246,8 +246,8 @@ function forumteamchat_start()
 		$count = 0;
 		if($rows>0) {
 			while($row = $db->fetch_array($query)) {
-				$chat_username = $row['username'];
-				$chat_message = $row['msg'];
+				$chat_username = htmlspecialchars_uni($row['username']);
+				$chat_message = htmlspecialchars_uni($row['msg']);
 
 				//Get Avatar of User
 				$tmpquery = $db->query("SELECT * from mybb_users WHERE username='$chat_username'");
