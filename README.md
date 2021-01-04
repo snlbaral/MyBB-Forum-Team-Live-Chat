@@ -1,6 +1,6 @@
 # MyBB-Forum-Team-Live-Chat
 
-MyBB Forum Team Live Chat [Build #1 (dev)]
+MyBB Forum Team Live Chat
 
     -> Adds Chat Window to every page of MyBB Forum.
 
@@ -13,6 +13,6 @@ Additional Information:
 
     1. Use Settings from Admin CP to controll various features.
 
-MyBB Downloads:
+MyBB Download & More Info:
 
     https://community.mybb.com/mods.php?action=view&pid=1414
