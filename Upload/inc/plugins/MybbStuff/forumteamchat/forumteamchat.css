@@ -1,3 +1,7 @@
+html, body {
+	margin: 0;
+}
+
 .alphabet {
 	background: #5876ab;
 	color: #fff;
@@ -28,6 +32,7 @@ text-decoration: none;
     z-index: 999;
     bottom: 5px;
     width: 330px;
+    display: none;
 }
 
 #chathead {
@@ -112,10 +117,6 @@ text-decoration: none;
     border-bottom-right-radius: 50%;
 }
 
-html, body {
-	margin: 0;
-}
-
 #chatform input[type="text"] {
 	margin-left: 6px;
 	padding: 4px 6px;
@@ -147,11 +148,11 @@ html, body {
 }
 
 #forOpen {
-display: none;
+display: initial;
 }
 
 #forClose {
-	display: initial !important;
+	display: none;
 }
 
 #forClose, #forOpen {
@@ -166,4 +167,88 @@ display: none;
 	cursor: pointer;
 	border-radius: 50%;
 	border: 2px solid #fff;
+}
+
+.self-wholemsgdiv {
+	float:right;
+	margin-top:6px;
+	position: relative;
+}
+
+.self-message {
+	background: rgb(0,132,255);
+	color: #fff;
+	float: right;
+}
+
+.self-message-removed, .others-message-removed {
+	background: #fff;
+	color: #222;
+	border: 1px solid #ddd;
+	color: silver;
+}
+
+.self-message-removed {
+	float: right;
+}
+
+.self-sentdate {
+	color: #666;
+	font-size: 6px;
+	visibility: hidden;
+	clear: both;
+	float: right;
+	margin-top: 2px;
+}
+
+.others-wholemsgdiv {
+
+}
+
+.others-message {
+
+}
+
+.others-sentdate {
+	color: #666;
+	margin-left: 54px;
+	font-size: 6px;
+	visibility: hidden;
+	margin-top:-2px
+}
+
+.dots {
+	line-height: 26px;
+	margin-right: 8px;
+	background: #e1e4f3;
+	padding: 0px 8px;
+	border-radius: 50%;
+	color: #777;
+	font-weight: bold;
+	font-size: 10px;
+	visibility: hidden;
+	cursor: pointer;
+}
+
+.remove-message {
+	background: #fff;
+	padding: 6px 12px;
+	border-radius: 4px;
+	font-size: 10px;
+	position: absolute;
+	width: fit-content;
+	top: -30px;
+	visibility: hidden;
+	transition: 0.2s ease-in;
+	cursor: pointer;
+	border: 1px solid #ddd;
+}
+
+.scrolltobottom {
+	float:right;
+	cursor:pointer;
+}
+
+.clear-chathistory {
+	cursor: pointer;
 }

@@ -9,12 +9,25 @@ $plugins->add_hook('global_start', 'forumteamchat_start');
 //Plugin Information
 function forumteamchat_info()
 {
+	global $mybb;
+
+	if($mybb->settings['forumteamchat_enable'] == 1){
+
+		$config = '<div style="float: right;"><a href="index.php?module=config-settings&action=change&search=forumteamchat" style="color:#035488; padding: 21px; text-decoration: none;">Configurar</a></div>';
+
+	}
+
+	else if($mybb->settings['forumteamchat_enable'] == 0){
+
+		$config = '<div style="float: right;"><span style="color:Red; padding: 21px; text-decoration: none;">Plugin disabled</span></div>';
+
+	}
 	return array(
 		'name' => 'MyBB Forum Team Live Chat Plugin',
 		'author' => 'Sunil Baral',
 		'website' => 'https://github.com/snlbaral',
-		'description' => 'This plugins allows mybb forum team to live chat',
-		'version' => '1.1.1',
+		'description' => 'This plugins allows mybb forum team to live chat'.$config,
+		'version' => '1.5',
 		'compatibility' => '18*',
 		'guid' => '',
 	);
@@ -131,7 +144,7 @@ function forumteamchat_activate()
 <div class="bdy">
 <div id="chathead">
 <div class="alphabet">
-<i class="fa fa-users" aria-hidden="true"></i> '.$mybb->settings["bbname"].' Team
+<i class="fa fa-users" aria-hidden="true"></i> '.$mybb->settings["bbname"].' Team {$clearchat}<span class="scrolltobottom" title="Scroll to bottom"><i class="fa fa-chevron-down" aria-hidden="true"></i></span>
 </div>
 <div id="chatbody">
 <div id="chatbodymsg">
@@ -146,7 +159,7 @@ function forumteamchat_activate()
 		'tid' => NULL,
 		'title' => 'forumteamchat_row_self',
 		'template' => $db->escape_string('
-<div class="wholemsg" style="float:right;margin-top:6px"><div class="username" title="{$chat_username}"></div><div class="msgbx" onclick="return msgClick(this);" onmouseout="return msgOff(this);" id="msgDivA" dummy="{$unq}" style="background: rgb(0,132,255);color: #fff;float:right" title="{$sentdate}">{$chat_message}</div><div id="{$unq}" style="color: #666;font-size: 6px;visibility: hidden;clear:both;float:right;margin-top:2px">{$sentdate}</div></div><br>
+<div class="wholemsg self-wholemsgdiv" onmouseover="return dotsVis(this);"><div class="username" title="{$chat_username}"></div><div class="remove-message remove-{$messageid}">Remove</div><i class="fa fa-ellipsis-h dots" aria-hidden="true" onclick="return rmvIt(this);" msgid="{$messageid}"></i><div class="msgbx self-message" onclick="return msgClick(this);" onmouseout="return msgOff(this);" id="msgDivA" dummy="{$unq}" title="{$sentdate}">{$chat_message}</div><div id="{$unq}" class="self-sentdate">{$sentdate}</div></div><br>
 			'),
 		'sid' => '-1',
 		'version' => $mybb->version_code,
@@ -158,7 +171,7 @@ function forumteamchat_activate()
 		'tid' => NULL,
 		'title' => 'forumteamchat_row_others',
 		'template' => $db->escape_string('
-<div class="wholemsg"><div class="username" title="{$chat_username}"><img src="{$chat_avatar}" class="pphead" style="border: 2px solid {$color}"></div><div class="msgbx" onclick="return msgClick(this);" onmouseout="return msgOff(this);" id="msgDivD" dummy="{$unq}" title="{$sentdate}">{$chat_message}</div><div id="{$unq}" style="color: #666;margin-left: 54px;font-size: 6px;visibility: hidden;margin-top:-2px">{$sentdate}</div></div><br>
+<div class="wholemsg others-wholemsgdiv"><div class="username" title="{$chat_username}"><img src="{$chat_avatar}" class="pphead" style="border: 2px solid {$color}"></div><div class="msgbx others-message" onclick="return msgClick(this);" onmouseout="return msgOff(this);" id="msgDivD" dummy="{$unq}" title="{$sentdate}">{$chat_message}</div><div id="{$unq}" class="others-sentdate">{$sentdate}</div></div><br>
 			'),
 		'sid' => '-1',
 		'version' => $mybb->version_code,
@@ -241,16 +254,16 @@ function forumteamchat_start()
 		$default_username = $mybb->user['username'];
 
 		//Check if previous chats exist
-		$query = $db->query("SELECT * from mybb_forumteamchats ORDER By id");
+		$query = $db->simple_select('forumteamchats', '*', '', ['order_by' => 'id']);
 		$rows = $db->num_rows($query);
 		$count = 0;
 		if($rows>0) {
 			while($row = $db->fetch_array($query)) {
-				$chat_username = htmlspecialchars_uni($row['username']);
-				$chat_message = htmlspecialchars_uni($row['msg']);
+				$chat_username = $db->escape_string($row['username']);
+				$chat_message = $db->escape_string($row['msg']);
 
 				//Get Avatar of User
-				$tmpquery = $db->query("SELECT * from mybb_users WHERE username='$chat_username'");
+				$tmpquery  = $db->simple_select('users', '*', "username='{$chat_username}'");
 				$result = $db->fetch_array($tmpquery);
 				$chat_avatar = $result['avatar'];
 				if($chat_avatar==NULL) {
@@ -286,15 +299,39 @@ function forumteamchat_start()
 
 				//Putting Messages in right place left/right
 				if($default_username!=$chat_username) {
-		        	eval("\$items .= \"".$templates->get("forumteamchat_row_others")."\";");
+					//If message is unsent
+					if($chat_message=="NULL&UNSENT") {
+						$chat_message = $chat_username." unsent a message";
+						$delete_msg = '<div class="wholemsg others-wholemsgdiv"><div class="username" title="'.$chat_username.'"><img src="'.$chat_avatar.'" class="pphead" style="border: 2px solid '.$color.'"></div><div class="msgbx others-message-removed" id="msgDivD" title="'.$sentdate.'">'.$chat_message.'</div></div><br>';
+						eval("\$items .= \"\$delete_msg\";");
+					//Else
+					} else {
+		        		eval("\$items .= \"".$templates->get("forumteamchat_row_others")."\";");
+					}
+
 				} else {
-		        	eval("\$items .= \"".$templates->get("forumteamchat_row_self")."\";");			
+					//If message is unsent
+					if($chat_message=="NULL&UNSENT") {
+						$chat_message = "You unsent a message";
+						$delete_msg = '<div class="wholemsg self-wholemsgdiv"><div class="username" title="'.$chat_username.'"></div><div class="msgbx self-message-removed" id="msgDivA" title="'.$sentdate.'">'.$chat_message.'</div></div><br>';
+						eval("\$items .= \"\$delete_msg\";");
+
+					} else {
+						$messageid = $row['id'];
+		        		eval("\$items .= \"".$templates->get("forumteamchat_row_self")."\";");
+					}
+
 				}
 			}
 		}
 		$stuff .= $templates->get('forumteamchat_index');
 
 		$sendurl = $mybb->settings['bburl'].'/inc/plugins/MybbStuff/forumteamchat/forumteamchat_send.php';
+
+		//Enable clear chat option for admin
+		if($mybb->user['uid']=="1") {
+			$clearchat = '&nbsp(<span class="clear-chathistory" title="Clear Chat History">Clear <i class="fa fa-times"></i></span>)';
+		}
 
 		//Footer/Input Field Part
 		$stuff .= $templates->get('forumteamchat_footer');
