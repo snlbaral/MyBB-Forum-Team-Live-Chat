@@ -55,6 +55,7 @@ if(isset($mybb->input['action']) && $mybb->input['action']=="remove" && $mybb->i
 		//If usergroup is in allowed user group for forum chat
 		if($usergroup!=1 && (in_array($usergroup, $allowed_group) || in_array('-1', $allowed_group))) {
 			$msg = $mybb->input['msg'];
+			$msg = trim(htmlentities(strip_tags($msg)));
 			$sql = array(
 				'uid' => (int)$uid,
 				'username' => $db->escape_string($username),
