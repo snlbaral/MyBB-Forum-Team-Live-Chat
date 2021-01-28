@@ -27,7 +27,7 @@ function forumteamchat_info()
 		'author' => 'Sunil Baral',
 		'website' => 'https://github.com/snlbaral',
 		'description' => 'This plugins allows mybb forum team to live chat'.$config,
-		'version' => '1.5',
+		'version' => '2.0',
 		'compatibility' => '18*',
 		'guid' => '',
 	);
@@ -49,6 +49,7 @@ function forumteamchat_install()
                         msg varchar(255) NOT NULL DEFAULT '',
                         dateline timestamp NOT NULL,
                         endtime timestamp NOT NULL,
+                        seenby text NOT NULL DEFAULT '',
                         PRIMARY KEY (id)
                     );"
                 );
@@ -61,7 +62,8 @@ function forumteamchat_install()
                         `username` varchar(100) NOT NULL,
                         `msg` varchar(255) NOT NULL DEFAULT '',                        
                         `dateline` datetime NOT NULL,
-                        `endtime` datetime NOT NULL,                        
+                        `endtime` datetime NOT NULL,
+                        `seenby` text NOT NULL DEFAULT '',                        
                         PRIMARY KEY (`id`)
                     ) ENGINE=MyISAM{$collation};"
                 );
@@ -93,7 +95,7 @@ function forumteamchat_activate()
 
 	//Admin CP Settings
 	$forumteamchat_group = array(
-		'gid' => '',
+		'gid' => (int)'',
 		'name' => 'forumteamchat',
 		'title' => 'MyBB Forum Team Live Chat Plugin',
 		'description' => 'Settings for MyBB Forum Team Live Chat Plugin',
@@ -124,23 +126,59 @@ function forumteamchat_activate()
 		'disporder' => 1,
 		'gid' => intval($gid),
 	);
+	$forumteamchat_deleted = array(
+		'sid' => 'NULL',
+		'name' => 'forumteamchat_deleted',
+		'title' => 'Do you want to display deleted message?',
+		'description' => 'If you set this option to yes, deleted messages will show a message "{username} unsent a message".',
+		'optionscode' => 'yesno',
+		'value' => '1',
+		'disporder' => 1,
+		'gid' => intval($gid),
+	);
 	$db->insert_query('settings',$forumteamchat_enable);
 	$db->insert_query('settings',$forumteamchat_allowed_group);
+	$db->insert_query('settings', $forumteamchat_deleted);
 	rebuild_settings();
+
+	$q = $db->simple_select("templategroups", "COUNT(*) as count", "title = 'Forum Team Chat'");
+	$c = $db->fetch_field($q, "count");
+	$db->free_result($q);
+	
+	if($c < 1)
+	{
+		$ins = array(
+			"prefix"		=> "forumteamchat",
+			"title"			=> "Forum Team Chat",
+		);
+		$db->insert_query("templategroups", $ins);
+	}
+
+	$insert_temp = array(
+		'tid' => NULL,
+		'title' => 'forumteamchat_main',
+		'template' => $db->escape_string('
+{$fheader}
+{$findex}
+{$ffooter}
+			'),
+		'sid' => '-2',
+		'version' => $mybb->version_code,
+		'dateline' => time(),
+	);
+	$db->insert_query('templates',$insert_temp);
+
+
 
 	//Templates
 	$insert_temp = array(
 		'tid' => NULL,
 		'title' => 'forumteamchat_header',
 		'template' => $db->escape_string('
+{$headerinclude}
 <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
 <link rel="stylesheet" type="text/css" href="inc/plugins/MybbStuff/forumteamchat/forumteamchat.css">
-<div id="forClose">
-<i class="fa fa-times" aria-hidden="true"></i>
-</div>
-<div id="forOpen">
-<i class="fa fa-comments" aria-hidden="true"></i>
-</div>
+<div class="forumteamchat-unreadmsg" style="display: none">{$forum_uncountmsg}</div>
 <div class="bdy">
 <div id="chathead">
 <div class="alphabet">
@@ -149,7 +187,7 @@ function forumteamchat_activate()
 <div id="chatbody">
 <div id="chatbodymsg">
 			'),
-		'sid' => '-1',
+		'sid' => '-2',
 		'version' => $mybb->version_code,
 		'dateline' => time(),
 	);
@@ -161,7 +199,7 @@ function forumteamchat_activate()
 		'template' => $db->escape_string('
 <div class="wholemsg self-wholemsgdiv" onmouseover="return dotsVis(this);"><div class="username" title="{$chat_username}"></div><div class="remove-message remove-{$messageid}">Remove</div><i class="fa fa-ellipsis-h dots" aria-hidden="true" onclick="return rmvIt(this);" msgid="{$messageid}"></i><div class="msgbx self-message" onclick="return msgClick(this);" onmouseout="return msgOff(this);" id="msgDivA" dummy="{$unq}" title="{$sentdate}">{$chat_message}</div><div id="{$unq}" class="self-sentdate">{$sentdate}</div></div><br>
 			'),
-		'sid' => '-1',
+		'sid' => '-2',
 		'version' => $mybb->version_code,
 		'dateline' => time(),
 	);
@@ -173,7 +211,7 @@ function forumteamchat_activate()
 		'template' => $db->escape_string('
 <div class="wholemsg others-wholemsgdiv"><div class="username" title="{$chat_username}"><img src="{$chat_avatar}" class="pphead" style="border: 2px solid {$color}"></div><div class="msgbx others-message" onclick="return msgClick(this);" onmouseout="return msgOff(this);" id="msgDivD" dummy="{$unq}" title="{$sentdate}">{$chat_message}</div><div id="{$unq}" class="others-sentdate">{$sentdate}</div></div><br>
 			'),
-		'sid' => '-1',
+		'sid' => '-2',
 		'version' => $mybb->version_code,
 		'dateline' => time(),
 	);
@@ -185,7 +223,7 @@ function forumteamchat_activate()
 		'template' => $db->escape_string('
 {$items}
 			'),
-		'sid' => '-1',
+		'sid' => '-2',
 		'version' => $mybb->version_code,
 		'dateline' => time(),
 	);
@@ -199,17 +237,135 @@ function forumteamchat_activate()
 </div>
 <form action="" data-route="{$sendurl}" method="post" id="chatform">
 	<input type="text" name="msg" autocomplete="off" required>
+	<input type="hidden" name="my_post_key" value="{$mybb->post_code}" />
 	<input type="submit" value="Send" id="send">
 </form>
 </div>
 </div>
 <script src="jscripts/forumteamchat.js"></script>
 			'),
-		'sid' => '-1',
+		'sid' => '-2',
 		'version' => $mybb->version_code,
 		'dateline' => time(),
 	);
 	$db->insert_query('templates',$insert_temp);
+
+
+
+	$insert_temp = array(
+		'tid' => NULL,
+		'title' => 'forumteamchat_iframe',
+		'template' => $db->escape_string('
+<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+<style>
+#forumteamchatFrame {
+	height: 450px;
+	position: fixed;
+	right: 2%;
+	border: 0;
+	z-index: 99999;
+	border-radius: 6px;
+	border: 1px solid #999;
+	bottom: 5px;
+	width: 330px;
+	visibility: hidden;
+}
+#forumteamchatClose, #forumteamchatOpen {
+	position: fixed;
+	right: 2%;
+	z-index: 999;
+	background: #5876ab;
+	padding: 6px;
+	text-align: center;
+	color: #fff;
+	cursor: pointer;
+	border-radius: 50%;
+	border: 2px solid #fff;
+	bottom: 456px;
+}
+
+#forumteamchatClose {
+	display: none;
+}
+
+#forumteamchat-unreadmsg {
+    color: #fff !important;
+    position: absolute;
+    z-index: 999;
+    top: -13px;
+    background: green;
+    width: 19px;
+    border-radius: 50%;
+    height: 19px;
+    right: -13px;
+    border: 2px solid #fff;
+    line-height: 19px;
+    font-size: 12px;
+    display: none;
+}
+</style>
+<div id="forumteamchatClose">
+<i class="fa fa-times" aria-hidden="true"></i>
+</div>
+<div id="forumteamchatOpen">
+<span id="forumteamchat-unreadmsg"></span><i class="fa fa-comments" aria-hidden="true"></i>
+</div>
+<iframe src="'.$mybb->settings['bburl'].'/forum-teamchat.php" id="forumteamchatFrame"></iframe>
+<script>
+document.getElementById("forumteamchatFrame").onload = function() {
+	var unframe = document.getElementById("forumteamchatFrame");
+	var undoc = unframe.contentDocument;
+	var unbody = undoc.body;
+	var unelm = unbody.getElementsByClassName("forumteamchat-unreadmsg")[0];
+	document.getElementById("forumteamchat-unreadmsg").innerHTML = unelm.innerHTML;
+	var uncom = unelm.innerHTML;
+	if(uncom>0) {
+		document.getElementById("forumteamchat-unreadmsg").style.display = "block";
+	} else {
+		document.getElementById("forumteamchat-unreadmsg").style.display = "none";
+	}
+}
+
+document.getElementById("forumteamchatOpen").onclick = function() {
+	document.getElementById("forumteamchatOpen").style.display = "none";
+	document.getElementById("forumteamchatClose").style.display = "initial";
+	document.getElementById("forumteamchatFrame").style.visibility = "visible";
+	var myframe = document.getElementById("forumteamchatFrame");
+	var mydoc = myframe.contentDocument;
+	var mybody = mydoc.body;
+	var url = "forum-teamchat.php";
+	var fde = new FormData();
+	fde.append("action","markasread");
+	$.ajax({
+		url: url,
+		type: "POST",
+		data: fde,
+		dataType: "json",
+		success: function(data) {
+			//console.log(data.res);
+		},
+		error: function(e) {
+		},
+		cache: false,
+		contentType: false,
+		processData: false,
+	});
+
+}
+
+document.getElementById("forumteamchatClose").onclick = function() {
+	document.getElementById("forumteamchatOpen").style.display = "initial";
+	document.getElementById("forumteamchatClose").style.display = "none";
+	document.getElementById("forumteamchatFrame").style.visibility = "hidden";
+}
+</script>
+			'),
+		'sid' => '-2',
+		'version' => $mybb->version_code,
+		'dateline' => time(),
+	);
+	$db->insert_query('templates',$insert_temp);
+
 
 
 	//Activate in header template
@@ -226,8 +382,10 @@ function forumteamchat_deactivate()
 	//Templates Delete
 	$db->query("DELETE from ".TABLE_PREFIX."settings WHERE name IN ('forumteamchat_enable')");
 	$db->query("DELETE from ".TABLE_PREFIX."settings WHERE name IN ('forumteamchat_allowed_group')");
+	$db->query("DELETE from ".TABLE_PREFIX."settings WHERE name IN ('forumteamchat_deleted')");
 	$db->query("DELETE from ".TABLE_PREFIX."settinggroups WHERE name IN ('forumteamchat')");
-	$db->query("DELETE from ".TABLE_PREFIX."templates WHERE title LIKE 'forumteamchat%' AND sid='-1'");
+	$db->query("DELETE from ".TABLE_PREFIX."templategroups WHERE prefix IN ('forumteamchat')");
+	$db->query("DELETE from ".TABLE_PREFIX."templates WHERE title LIKE 'forumteamchat%'");
 	rebuild_settings();
 
 	//Deactive from header template
@@ -241,101 +399,11 @@ function forumteamchat_start()
 {
 	global $db, $mybb, $templates, $forumteamchat;
 
-	$allowed_group = explode(',', $mybb->settings['forumteamchat_allowed_group']);
-	$usergroup = $mybb->user['usergroup'];
-	
-	//If usergroup is in allowed user group for forum chat
-	if($usergroup!=1 && (in_array($usergroup, $allowed_group) || in_array('-1', $allowed_group))) {
-
-		//Header Part
-		$stuff .= $templates->get('forumteamchat_header');
-
-		//Message Part
-		$default_username = $mybb->user['username'];
-
-		//Check if previous chats exist
-		$query = $db->simple_select('forumteamchats', '*', '', ['order_by' => 'id']);
-		$rows = $db->num_rows($query);
-		$count = 0;
-		if($rows>0) {
-			while($row = $db->fetch_array($query)) {
-				$chat_username = $db->escape_string($row['username']);
-				$chat_message = $db->escape_string($row['msg']);
-
-				//Get Avatar of User
-				$tmpquery  = $db->simple_select('users', '*', "username='{$chat_username}'");
-				$result = $db->fetch_array($tmpquery);
-				$chat_avatar = $result['avatar'];
-				if($chat_avatar==NULL) {
-					$chat_avatar = 'images/default_avatar.png';
-				}
-
-				//Avatar Border Color
-				$gid = $row['gid'];
-				if($gid==4) {
-					$color = "green";
-				} elseif ($gid==3) {
-					$color = "#cc00cc";
-				} else {
-					$color = "#000066";
-				}
-
-				//Display Date on click
-				$sentdate = $row['dateline'];
-				$currentdate = date("Y-m-d H:i:s");
-				$endtime = date('Y-m-d H:i:s', strtotime($sentdate. ' + 24 hours'));
-				$unq = uniqid();
-				if($endtime<$currentdate) {
-					$sentdate = $sentdate;
-				} else {
-					$sub = strtotime($currentdate)-strtotime($sentdate);
-					$copmhour = floor($sub / 3600);
-					if($copmhour<1) {
-						$sentdate = floor($sub/60).' Minutes Ago';
-					} else {
-						$sentdate = floor($sub / 3600).' Hours Ago';
-					}
-				}
-
-				//Putting Messages in right place left/right
-				if($default_username!=$chat_username) {
-					//If message is unsent
-					if($chat_message=="NULL&UNSENT") {
-						$chat_message = $chat_username." unsent a message";
-						$delete_msg = '<div class="wholemsg others-wholemsgdiv"><div class="username" title="'.$chat_username.'"><img src="'.$chat_avatar.'" class="pphead" style="border: 2px solid '.$color.'"></div><div class="msgbx others-message-removed" id="msgDivD" title="'.$sentdate.'">'.$chat_message.'</div></div><br>';
-						eval("\$items .= \"\$delete_msg\";");
-					//Else
-					} else {
-		        		eval("\$items .= \"".$templates->get("forumteamchat_row_others")."\";");
-					}
-
-				} else {
-					//If message is unsent
-					if($chat_message=="NULL&UNSENT") {
-						$chat_message = "You unsent a message";
-						$delete_msg = '<div class="wholemsg self-wholemsgdiv"><div class="username" title="'.$chat_username.'"></div><div class="msgbx self-message-removed" id="msgDivA" title="'.$sentdate.'">'.$chat_message.'</div></div><br>';
-						eval("\$items .= \"\$delete_msg\";");
-
-					} else {
-						$messageid = $row['id'];
-		        		eval("\$items .= \"".$templates->get("forumteamchat_row_self")."\";");
-					}
-
-				}
-			}
+	if($mybb->settings['forumteamchat_enable']==1) {
+		$allowed_group = explode(',', $mybb->settings['forumteamchat_allowed_group']);
+		$usergroup = $mybb->user['usergroup'];
+		if($usergroup!=1 && (in_array($usergroup, $allowed_group) || in_array('-1', $allowed_group))) {
+			eval("\$forumteamchat = \"".$templates->get("forumteamchat_iframe")."\";");
 		}
-		$stuff .= $templates->get('forumteamchat_index');
-
-		$sendurl = $mybb->settings['bburl'].'/inc/plugins/MybbStuff/forumteamchat/forumteamchat_send.php';
-
-		//Enable clear chat option for admin
-		if($mybb->user['uid']=="1") {
-			$clearchat = '&nbsp(<span class="clear-chathistory" title="Clear Chat History">Clear <i class="fa fa-times"></i></span>)';
-		}
-
-		//Footer/Input Field Part
-		$stuff .= $templates->get('forumteamchat_footer');
-
-		eval("\$forumteamchat = \"".$stuff."\";");
 	}
 }
